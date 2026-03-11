@@ -3024,32 +3024,54 @@
 
       const lastScan = localStorage.getItem('lastScan_' + c.id);
       const now = Date.now();
+
       if (!lastScan || now - parseInt(lastScan) > 5000) {
         localStorage.setItem('lastScan_' + c.id, now.toString());
-        
-        if (c.email && c.email.trim() !== "") {
 
-          emailjs.send(
-            "service_gxck0qd",
-            "template_gpbdf5d",
-            {
-              owner_name: c.name || "Unknown",
-              phone: c.phone || "N/A",
-              email: c.email,
-              to_email: c.email,
-              location: c.e1 || "N/A",
-              message: c.e2 || "N/A",
-              scan_time: new Date().toLocaleString()
+        if (c.email && c.email.trim() !== "") {
+          toast("Sending notification email...", "inf");
+
+          // Web3Forms logic (Free Tier, 250/mo, No Credit Card needed)
+          // 1. Go to https://web3forms.com/ to get your FREE Access Key.
+          // 2. Paste it in place of "YOUR_ACCESS_KEY_HERE" below.
+          const accessKey = "dc52bde0-36fa-4dd5-9c08-5937cd46817fRE";
+
+          fetch("https://api.web3forms.com/submit", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json"
             },
-            "5192KcTLZmEao0J5e"
-          )
-          .then(function(response){
-            console.log("EMAIL SENT", response);
+            body: JSON.stringify({
+              access_key: accessKey,
+              subject: `🚨 Alert: SmartQR for ${c.name || "Unknown"} was scanned!`,
+              from_name: "SmartQR System",
+              to: c.email,
+              owner_name: c.name || "Unknown",
+              owner_phone: c.phone || "N/A",
+              owner_email: c.email,
+              location_info: c.e1 || "N/A",
+              finder_message: c.e2 || "N/A",
+              scan_timestamp: new Date().toLocaleString()
+            })
           })
-          .catch(function(error){
-            console.log("EMAIL ERROR", error);
-          });
-        
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                console.log("WEB3FORMS EMAIL SENT", data);
+                toast("Owner notified via email ✅", "ok");
+              } else {
+                throw new Error(data.message || "Unknown error");
+              }
+            })
+            .catch(error => {
+              console.error("WEB3FORMS EMAIL ERROR", error);
+              toast("Email Error: " + error.message, "err");
+            });
+
+        } else {
+          // If no email, let them know quietly
+          console.log("No email attached to this QR, skipping email notification.");
         }
       }
     }
