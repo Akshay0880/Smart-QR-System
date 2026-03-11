@@ -1,0 +1,3055 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartQR — Editable Contact QR System</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    :root {
+      --ink: #0A0D12;
+      --ink2: #141820;
+      --ink3: #1C2330;
+      --ink4: #242E3E;
+      --line: #2A3545;
+      --line2: #354560;
+      --mist: #4D6480;
+      --fog: #7090AA;
+      --sky: #A8C0D8;
+      --paper: #D8E8F5;
+      --snow: #F0F7FF;
+      --white: #FFFFFF;
+      --go: #00E5A0;
+      --go2: #00C888;
+      --go3: #009966;
+      --pulse: #FF5C38;
+      --electric: #4D9FFF;
+      --amber: #FFAA00;
+      --r: 12px;
+      --r2: 18px;
+      --r3: 24px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px
+    }
+
+    body {
+      background: var(--ink);
+      color: var(--snow);
+      font-family: 'Instrument Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--ink)
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--line2);
+      border-radius: 2px
+    }
+
+    /* ─────────────────────────────────────
+   SCREEN SYSTEM
+───────────────────────────────────── */
+    .screen {
+      display: none
+    }
+
+    .screen.on {
+      display: block
+    }
+
+    #app-screen.on {
+      display: flex
+    }
+
+    /* ─────────────────────────────────────
+   TYPOGRAPHY
+───────────────────────────────────── */
+    .syne {
+      font-family: 'Syne', sans-serif
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    h1,
+    h2,
+    h3,
+    .heading {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700
+    }
+
+    /* ─────────────────────────────────────
+   LANDING
+───────────────────────────────────── */
+    #land {
+      background: var(--ink);
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Animated grid */
+    .land-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(0, 229, 160, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 160, .035) 1px, transparent 1px);
+      background-size: 64px 64px;
+      animation: gridDrift 25s linear infinite;
+    }
+
+    @keyframes gridDrift {
+      from {
+        background-position: 0 0
+      }
+
+      to {
+        background-position: 64px 64px
+      }
+    }
+
+    /* Radial glow blobs */
+    .glow {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(90px)
+    }
+
+    .g1 {
+      width: 700px;
+      height: 700px;
+      background: rgba(0, 229, 160, .06);
+      top: -200px;
+      right: -200px
+    }
+
+    .g2 {
+      width: 500px;
+      height: 500px;
+      background: rgba(77, 159, 255, .05);
+      bottom: -100px;
+      left: -150px
+    }
+
+    .g3 {
+      width: 300px;
+      height: 300px;
+      background: rgba(255, 92, 56, .04);
+      top: 50%;
+      left: 40%;
+      transform: translate(-50%, -50%)
+    }
+
+    /* Nav */
+    .land-nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 64px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--go), var(--electric));
+      display: grid;
+      place-items: center;
+      font-size: .9rem;
+      box-shadow: 0 0 20px rgba(0, 229, 160, .3);
+    }
+
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--snow);
+      letter-spacing: -.02em;
+    }
+
+    .logo-text em {
+      color: var(--go);
+      font-style: normal
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .nav-btn {
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nb-ghost {
+      background: transparent;
+      color: var(--fog);
+      border: 1px solid var(--line)
+    }
+
+    .nb-ghost:hover {
+      color: var(--snow);
+      border-color: var(--line2)
+    }
+
+    .nb-go {
+      background: linear-gradient(135deg, var(--go), var(--go2));
+      color: var(--ink);
+      font-weight: 700;
+      box-shadow: 0 4px 20px rgba(0, 229, 160, .3);
+    }
+
+    .nb-go:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px rgba(0, 229, 160, .4)
+    }
+
+    /* Hero */
+    .land-hero {
+      position: relative;
+      z-index: 5;
+      text-align: center;
+      padding: 80px 24px 60px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .hero-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 40px;
+      background: rgba(0, 229, 160, .08);
+      border: 1px solid rgba(0, 229, 160, .18);
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--go);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      animation: chipPop .5s .1s both;
+    }
+
+    .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--go);
+      animation: blip 2s infinite
+    }
+
+    @keyframes blip {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1)
+      }
+
+      50% {
+        opacity: .3;
+        transform: scale(.7)
+      }
+    }
+
+    @keyframes chipPop {
+      from {
+        opacity: 0;
+        transform: translateY(-8px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .hero-h {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(3.2rem, 8vw, 7rem);
+      font-weight: 800;
+      line-height: .94;
+      letter-spacing: -.04em;
+      color: var(--snow);
+      margin-bottom: 28px;
+      animation: heroUp .7s .2s both;
+    }
+
+    .hero-h .stroke {
+      -webkit-text-stroke: 2px var(--go);
+      color: transparent;
+    }
+
+    .hero-h .fill {
+      color: var(--go)
+    }
+
+    @keyframes heroUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--fog);
+      line-height: 1.75;
+      max-width: 580px;
+      margin: 0 auto 44px;
+      font-weight: 400;
+      animation: heroUp .7s .35s both;
+    }
+
+    .hero-sub strong {
+      color: var(--sky);
+      font-weight: 600
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: heroUp .6s .5s both;
+    }
+
+    /* Problem Cards */
+    .problems {
+      position: relative;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      border-radius: var(--r2);
+      overflow: hidden;
+      max-width: 1000px;
+      margin: 0 auto 80px;
+    }
+
+    .prob {
+      background: var(--ink2);
+      padding: 32px 28px;
+      transition: background .25s;
+    }
+
+    .prob:hover {
+      background: var(--ink3)
+    }
+
+    .prob-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 1.4rem;
+      margin-bottom: 16px;
+    }
+
+    .pi-red {
+      background: rgba(255, 92, 56, .1);
+      border: 1px solid rgba(255, 92, 56, .2)
+    }
+
+    .pi-amber {
+      background: rgba(255, 170, 0, .1);
+      border: 1px solid rgba(255, 170, 0, .2)
+    }
+
+    .pi-blue {
+      background: rgba(77, 159, 255, .1);
+      border: 1px solid rgba(77, 159, 255, .2)
+    }
+
+    .prob-tag {
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .pt-problem {
+      color: var(--pulse)
+    }
+
+    .pt-fixed {
+      color: var(--go)
+    }
+
+    .prob-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--snow);
+      margin-bottom: 8px
+    }
+
+    .prob-body {
+      font-size: .82rem;
+      color: var(--fog);
+      line-height: 1.65
+    }
+
+    /* How it works */
+    .how-section {
+      position: relative;
+      z-index: 5;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 100px;
+    }
+
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem;
+      color: var(--go);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2rem, 4vw, 3rem);
+      color: var(--snow);
+      letter-spacing: -.03em;
+      line-height: 1.1;
+      margin-bottom: 48px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px
+    }
+
+    .step {
+      background: var(--ink2);
+      border: 1px solid var(--line);
+      border-radius: var(--r2);
+      padding: 24px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .25s, transform .25s;
+    }
+
+    .step:hover {
+      border-color: rgba(0, 229, 160, .35);
+      transform: translateY(-4px)
+    }
+
+    .step::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--go), transparent);
+      opacity: 0;
+      transition: opacity .25s;
+    }
+
+    .step:hover::before {
+      opacity: 1
+    }
+
+    .step-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem;
+      color: var(--mist);
+      font-weight: 500;
+      letter-spacing: .1em;
+      margin-bottom: 14px;
+    }
+
+    .step-icon {
+      font-size: 1.8rem;
+      margin-bottom: 12px
+    }
+
+    .step-title {
+      font-family: 'Syne', sans-serif;
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--snow);
+      margin-bottom: 6px
+    }
+
+    .step-body {
+      font-size: .78rem;
+      color: var(--fog);
+      line-height: 1.6
+    }
+
+    /* ─────────────────────────────────────
+   AUTH MODAL
+───────────────────────────────────── */
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      background: rgba(5, 8, 12, .85);
+      backdrop-filter: blur(12px);
+      display: none;
+      place-items: center;
+      padding: 16px;
+    }
+
+    .modal-bg.on {
+      display: grid
+    }
+
+    .modal {
+      background: var(--ink2);
+      border: 1px solid var(--line2);
+      border-radius: var(--r3);
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 40px 80px rgba(0, 0, 0, .6);
+      animation: modalIn .3s both;
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(.95) translateY(10px)
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0)
+      }
+    }
+
+    .modal-head {
+      padding: 28px 28px 22px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-head-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--snow)
+    }
+
+    .modal-x {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--ink3);
+      border: 1px solid var(--line);
+      color: var(--fog);
+      cursor: pointer;
+      font-size: .9rem;
+      display: grid;
+      place-items: center;
+      transition: all .15s;
+    }
+
+    .modal-x:hover {
+      background: rgba(255, 92, 56, .15);
+      color: var(--pulse);
+      border-color: rgba(255, 92, 56, .2)
+    }
+
+    .modal-body {
+      padding: 24px 28px 28px
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--ink3);
+      border-radius: 10px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 24px;
+    }
+
+    .tab-btn {
+      padding: 8px;
+      border-radius: 7px;
+      border: none;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: .84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .18s;
+      color: var(--fog);
+      background: transparent;
+    }
+
+    .tab-btn.on {
+      background: var(--ink4);
+      color: var(--snow);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .3)
+    }
+
+    /* Form */
+    .field {
+      margin-bottom: 16px
+    }
+
+    .field:last-of-type {
+      margin-bottom: 24px
+    }
+
+    .flabel {
+      display: block;
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--fog);
+      margin-bottom: 6px;
+      letter-spacing: .03em;
+    }
+
+    .finput,
+    .fselect,
+    .ftextarea {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--ink);
+      border: 1px solid var(--line2);
+      border-radius: 9px;
+      color: var(--snow);
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: .88rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .finput:focus,
+    .fselect:focus,
+    .ftextarea:focus {
+      border-color: var(--go);
+      box-shadow: 0 0 0 3px rgba(0, 229, 160, .1);
+    }
+
+    .fselect {
+      appearance: none;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='%234D6480'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 38px;
+    }
+
+    .ftextarea {
+      resize: vertical;
+      min-height: 76px;
+      line-height: 1.5
+    }
+
+    .finput::placeholder,
+    .ftextarea::placeholder {
+      color: var(--mist)
+    }
+
+    .demo-note {
+      text-align: center;
+      font-size: .72rem;
+      color: var(--mist);
+      margin-top: 10px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 10px 20px;
+      border-radius: 9px;
+      border: none;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .18s;
+      text-decoration: none;
+    }
+
+    .btn-full {
+      width: 100%
+    }
+
+    .btn-go {
+      background: linear-gradient(135deg, var(--go), var(--go2));
+      color: var(--ink);
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(0, 229, 160, .25);
+    }
+
+    .btn-go:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0, 229, 160, .35)
+    }
+
+    .btn-line {
+      background: var(--ink3);
+      color: var(--sky);
+      border: 1px solid var(--line2)
+    }
+
+    .btn-line:hover {
+      border-color: var(--go);
+      color: var(--go)
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--fog);
+      border: 1px solid var(--line)
+    }
+
+    .btn-ghost:hover {
+      color: var(--snow);
+      border-color: var(--line2)
+    }
+
+    .btn-red {
+      background: rgba(255, 92, 56, .1);
+      color: var(--pulse);
+      border: 1px solid rgba(255, 92, 56, .2)
+    }
+
+    .btn-red:hover {
+      background: rgba(255, 92, 56, .18)
+    }
+
+    .btn-blue {
+      background: linear-gradient(135deg, var(--electric), #2277E6);
+      color: #fff
+    }
+
+    .btn-blue:hover {
+      transform: translateY(-1px)
+    }
+
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: .78rem;
+      border-radius: 7px
+    }
+
+    .btn-xs {
+      padding: 5px 11px;
+      font-size: .72rem;
+      border-radius: 6px
+    }
+
+    .btn-lg {
+      padding: 14px 30px;
+      font-size: .96rem;
+      border-radius: 12px
+    }
+
+    /* ─────────────────────────────────────
+   APP SHELL
+───────────────────────────────────── */
+    #app-screen {
+      min-height: 100vh;
+      background: var(--ink);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 256px;
+      flex-shrink: 0;
+      background: var(--ink2);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sb-brand {
+      padding: 22px 18px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .sb-user {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--go), var(--electric));
+      display: grid;
+      place-items: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: .95rem;
+      color: var(--ink);
+      flex-shrink: 0;
+    }
+
+    .sb-user-name {
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--snow)
+    }
+
+    .sb-user-badge {
+      font-size: .65rem;
+      font-weight: 700;
+      color: var(--go);
+      background: rgba(0, 229, 160, .1);
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-top: 2px;
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: .06em;
+    }
+
+    .sb-nav {
+      flex: 1;
+      padding: 14px 10px
+    }
+
+    .sb-section {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .62rem;
+      color: var(--mist);
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      padding: 6px 8px 4px;
+      font-weight: 500;
+    }
+
+    .sb-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 9px;
+      color: var(--fog);
+      font-size: .86rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      margin-bottom: 1px;
+      border: 1px solid transparent;
+    }
+
+    .sb-item:hover {
+      background: var(--ink3);
+      color: var(--sky)
+    }
+
+    .sb-item.on {
+      background: rgba(0, 229, 160, .08);
+      color: var(--go);
+      border-color: rgba(0, 229, 160, .12)
+    }
+
+    .sb-item-icon {
+      font-size: .95rem;
+      width: 18px;
+      text-align: center
+    }
+
+    .sb-badge {
+      margin-left: auto;
+      background: var(--electric);
+      color: #fff;
+      font-size: .62rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .sb-bottom {
+      padding: 14px;
+      border-top: 1px solid var(--line)
+    }
+
+    /* Main */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      min-width: 0
+    }
+
+    .topbar {
+      background: rgba(20, 24, 32, .95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .topbar-info {
+      min-width: 0
+    }
+
+    .topbar-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--snow)
+    }
+
+    .topbar-sub {
+      font-size: .74rem;
+      color: var(--mist);
+      margin-top: 1px
+    }
+
+    .topbar-right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0
+    }
+
+    /* Pages */
+    .page {
+      display: none;
+      padding: 24px 28px
+    }
+
+    .page.on {
+      display: block
+    }
+
+    /* ─────────────────────────────────────
+   STATS
+───────────────────────────────────── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 24px
+    }
+
+    .stat {
+      background: var(--ink2);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 20px;
+      transition: border-color .2s, transform .2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat:hover {
+      border-color: var(--line2);
+      transform: translateY(-2px)
+    }
+
+    .stat::after {
+      content: attr(data-icon);
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      font-size: 1.6rem;
+      opacity: .18;
+    }
+
+    .stat-lbl {
+      font-size: .7rem;
+      font-weight: 600;
+      color: var(--mist);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 8px
+    }
+
+    .stat-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--snow);
+      line-height: 1
+    }
+
+    .stat-sub {
+      font-size: .72rem;
+      margin-top: 5px
+    }
+
+    .sc-up {
+      color: var(--go)
+    }
+
+    .sc-neu {
+      color: var(--mist)
+    }
+
+    /* ─────────────────────────────────────
+   QR CARDS
+───────────────────────────────────── */
+    .qr-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 18px;
+    }
+
+    .qr-card {
+      background: var(--ink2);
+      border: 1px solid var(--line);
+      border-radius: var(--r2);
+      overflow: hidden;
+      transition: border-color .25s, transform .25s, box-shadow .25s;
+    }
+
+    .qr-card:hover {
+      border-color: var(--line2);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, .5)
+    }
+
+    .qrc-top {
+      padding: 18px 18px 16px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .qr-thumb {
+      width: 72px;
+      height: 72px;
+      background: var(--white);
+      border-radius: 9px;
+      flex-shrink: 0;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--line2);
+      position: relative;
+    }
+
+    .qr-thumb canvas,
+    .qr-thumb img {
+      width: 68px !important;
+      height: 68px !important
+    }
+
+    .qrc-meta {
+      flex: 1;
+      min-width: 0
+    }
+
+    .qrc-name {
+      font-family: 'Syne', sans-serif;
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--snow);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .type-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .68rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+      margin-bottom: 7px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .tp-person {
+      background: rgba(0, 229, 160, .1);
+      color: var(--go);
+      border: 1px solid rgba(0, 229, 160, .2)
+    }
+
+    .tp-vehicle {
+      background: rgba(77, 159, 255, .1);
+      color: var(--electric);
+      border: 1px solid rgba(77, 159, 255, .2)
+    }
+
+    .tp-item {
+      background: rgba(255, 92, 56, .1);
+      color: var(--pulse);
+      border: 1px solid rgba(255, 92, 56, .2)
+    }
+
+    .tp-pet {
+      background: rgba(255, 170, 0, .1);
+      color: var(--amber);
+      border: 1px solid rgba(255, 170, 0, .2)
+    }
+
+    .qrc-scans {
+      font-size: .73rem;
+      color: var(--fog)
+    }
+
+    .qrc-scans strong {
+      color: var(--go);
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    .qrc-body {
+      padding: 12px 18px
+    }
+
+    .qrc-row {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      font-size: .78rem;
+      color: var(--fog);
+      margin-bottom: 4px;
+    }
+
+    .qrc-row-icon {
+      font-size: .85rem;
+      width: 14px;
+      text-align: center;
+      flex-shrink: 0
+    }
+
+    .qrc-foot {
+      padding: 11px 18px;
+      background: rgba(0, 0, 0, .25);
+      display: flex;
+      gap: 7px;
+      justify-content: flex-end;
+      border-top: 1px solid var(--line);
+    }
+
+    /* Status */
+    .dot-on {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--go);
+      box-shadow: 0 0 6px rgba(0, 229, 160, .5);
+      margin-right: 4px;
+      vertical-align: middle
+    }
+
+    .dot-off {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--mist);
+      margin-right: 4px;
+      vertical-align: middle
+    }
+
+    /* ─────────────────────────────────────
+   SECTION CARD
+───────────────────────────────────── */
+    .scard {
+      background: var(--ink2);
+      border: 1px solid var(--line);
+      border-radius: var(--r2);
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+
+    .scard-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .scard-title {
+      font-family: 'Syne', sans-serif;
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--snow)
+    }
+
+    .scard-body {
+      padding: 20px
+    }
+
+    /* Table */
+    .tbl-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      background: var(--ink2)
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse
+    }
+
+    thead th {
+      background: var(--ink3);
+      padding: 10px 14px;
+      text-align: left;
+      font-size: .69rem;
+      font-weight: 700;
+      color: var(--fog);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--line);
+    }
+
+    tbody td {
+      padding: 12px 14px;
+      font-size: .83rem;
+      border-bottom: 1px solid var(--line);
+      color: var(--sky)
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none
+    }
+
+    tbody tr:hover td {
+      background: rgba(255, 255, 255, .02)
+    }
+
+    /* Activity */
+    .act-item {
+      display: flex;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .act-item:last-child {
+      border-bottom: none
+    }
+
+    .act-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--go);
+      margin-top: 7px;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px rgba(0, 229, 160, .5);
+    }
+
+    .act-text {
+      font-size: .8rem;
+      color: var(--fog);
+      line-height: 1.5
+    }
+
+    .act-text strong {
+      color: var(--sky)
+    }
+
+    .act-time {
+      font-size: .68rem;
+      color: var(--mist);
+      margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 50px 20px
+    }
+
+    .empty-ico {
+      font-size: 2.8rem;
+      margin-bottom: 14px;
+      opacity: .35
+    }
+
+    .empty-ttl {
+      font-family: 'Syne', sans-serif;
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--sky);
+      margin-bottom: 7px
+    }
+
+    .empty-txt {
+      font-size: .8rem;
+      color: var(--fog);
+      margin-bottom: 22px
+    }
+
+    /* Filter row */
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .filt-btn {
+      padding: 6px 14px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--fog);
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      font-family: 'Instrument Sans', sans-serif;
+    }
+
+    .filt-btn:hover {
+      border-color: var(--line2);
+      color: var(--sky)
+    }
+
+    .filt-btn.on {
+      background: rgba(0, 229, 160, .1);
+      border-color: rgba(0, 229, 160, .25);
+      color: var(--go)
+    }
+
+    /* ─────────────────────────────────────
+   MODALS
+───────────────────────────────────── */
+    .qr-modal-body {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      padding: 22px 26px 0;
+    }
+
+    .form-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px
+    }
+
+    .field-full {
+      grid-column: span 2
+    }
+
+    /* QR Preview Panel */
+    .qr-panel {
+      background: var(--ink3);
+      border: 1px solid var(--line2);
+      border-radius: var(--r2);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      height: fit-content;
+      position: sticky;
+      top: 0;
+    }
+
+    .qr-panel-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .65rem;
+      color: var(--go);
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    .qr-big {
+      width: 170px;
+      height: 170px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 6px;
+      box-shadow: 0 0 40px rgba(0, 229, 160, .12);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .qr-big canvas,
+    .qr-big img {
+      width: 158px !important;
+      height: 158px !important
+    }
+
+    .qr-url {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .66rem;
+      color: var(--fog);
+      background: var(--ink);
+      padding: 7px 12px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      text-align: center;
+      word-break: break-all;
+      max-width: 100%;
+    }
+
+    .qr-info-box {
+      background: rgba(0, 229, 160, .05);
+      border: 1px solid rgba(0, 229, 160, .12);
+      border-radius: 9px;
+      padding: 12px;
+      width: 100%;
+    }
+
+    .qr-info-box p {
+      font-size: .72rem;
+      color: var(--fog);
+      line-height: 1.6;
+      text-align: center
+    }
+
+    /* Toggle */
+    .toggle-field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0
+    }
+
+    .toggle-txt {
+      font-size: .84rem;
+      color: var(--sky)
+    }
+
+    .toggle-sub {
+      font-size: .72rem;
+      color: var(--mist);
+      margin-top: 2px
+    }
+
+    .sw {
+      position: relative;
+      width: 42px;
+      height: 22px;
+      flex-shrink: 0
+    }
+
+    .sw input {
+      opacity: 0;
+      width: 0;
+      height: 0
+    }
+
+    .sw-track {
+      position: absolute;
+      inset: 0;
+      background: var(--ink4);
+      border: 1px solid var(--line2);
+      border-radius: 22px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .sw-track::before {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 3px;
+      top: 3px;
+      background: var(--mist);
+      border-radius: 50%;
+      transition: transform .2s, background .2s;
+    }
+
+    .sw input:checked~.sw-track {
+      background: rgba(0, 229, 160, .15);
+      border-color: var(--go)
+    }
+
+    .sw input:checked~.sw-track::before {
+      transform: translateX(20px);
+      background: var(--go)
+    }
+
+    /* ─────────────────────────────────────
+   PUBLIC SCAN VIEW
+───────────────────────────────────── */
+    #scan-view {
+      min-height: 100vh;
+      background: var(--ink);
+      display: none;
+    }
+
+    #scan-view.on {
+      display: block
+    }
+
+    .scan-nav {
+      background: var(--ink2);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .scan-wrap {
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 28px 16px 60px
+    }
+
+    .scan-card {
+      background: var(--ink2);
+      border: 1px solid var(--line);
+      border-radius: var(--r3);
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, .6);
+    }
+
+    .scan-hero {
+      padding: 28px 24px 22px;
+      background: linear-gradient(135deg, rgba(0, 229, 160, .08), rgba(77, 159, 255, .05));
+      border-bottom: 1px solid var(--line);
+      text-align: center;
+    }
+
+    .scan-ava {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--go), var(--electric));
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+      margin: 0 auto 14px;
+      box-shadow: 0 0 32px rgba(0, 229, 160, .25);
+    }
+
+    .scan-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--snow);
+      letter-spacing: -.02em
+    }
+
+    .scan-body {
+      padding: 4px 24px 0
+    }
+
+    .scan-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .scan-row:last-child {
+      border-bottom: none
+    }
+
+    .scan-row-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: rgba(0, 229, 160, .08);
+      border: 1px solid rgba(0, 229, 160, .12);
+      display: grid;
+      place-items: center;
+      font-size: .95rem;
+      flex-shrink: 0;
+    }
+
+    .scan-row-lbl {
+      font-size: .68rem;
+      color: var(--fog);
+      margin-bottom: 2px;
+      font-weight: 500
+    }
+
+    .scan-row-val {
+      font-size: .9rem;
+      color: var(--snow);
+      font-weight: 600
+    }
+
+    .scan-row-val a {
+      color: var(--go);
+      text-decoration: none
+    }
+
+    .scan-row-val a:hover {
+      text-decoration: underline
+    }
+
+    .scan-actions {
+      padding: 18px 24px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .scan-act {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 8px;
+      background: var(--ink3);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all .2s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .scan-act:hover {
+      border-color: var(--go);
+      background: rgba(0, 229, 160, .06)
+    }
+
+    .scan-act-ico {
+      font-size: 1.5rem
+    }
+
+    .scan-act-lbl {
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--fog)
+    }
+
+    .scan-footer {
+      text-align: center;
+      margin-top: 18px;
+      font-size: .72rem;
+      color: var(--mist);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .scan-footer a {
+      color: var(--electric);
+      text-decoration: none
+    }
+
+    .scan-footer a:hover {
+      color: var(--go)
+    }
+
+    /* View QR panel (in modal) */
+    #vqr-container {
+      width: 180px;
+      height: 180px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 7px;
+      display: grid;
+      place-items: center
+    }
+
+    #vqr-container canvas,
+    #vqr-container img {
+      width: 166px !important;
+      height: 166px !important
+    }
+
+    /* ─────────────────────────────────────
+   TOAST
+───────────────────────────────────── */
+    #toast-root {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    .toast {
+      background: var(--ink3);
+      border: 1px solid var(--line2);
+      border-radius: 11px;
+      padding: 11px 16px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: .82rem;
+      color: var(--snow);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, .5);
+      min-width: 240px;
+      animation: tIn .25s both;
+    }
+
+    .toast.ok {
+      border-left: 3px solid var(--go)
+    }
+
+    .toast.err {
+      border-left: 3px solid var(--pulse)
+    }
+
+    .toast.inf {
+      border-left: 3px solid var(--electric)
+    }
+
+    @keyframes tIn {
+      from {
+        opacity: 0;
+        transform: translateX(16px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0)
+      }
+    }
+
+    /* ─────────────────────────────────────
+   VIEW QR MODAL
+───────────────────────────────────── */
+    #view-modal .modal {
+      max-width: 480px
+    }
+
+    .view-qr-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 0;
+    }
+
+    .vqr-url {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .68rem;
+      color: var(--fog);
+      background: var(--ink);
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      text-align: center;
+      word-break: break-all;
+      max-width: 280px;
+    }
+
+    .use-guide {
+      background: rgba(0, 229, 160, .04);
+      border: 1px solid rgba(0, 229, 160, .1);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-top: 4px;
+      width: 100%;
+    }
+
+    .use-guide li {
+      font-size: .78rem;
+      color: var(--fog);
+      line-height: 2.1;
+      list-style: none;
+      padding-left: 0
+    }
+
+    .use-guide li::before {
+      content: '→  ';
+      color: var(--go);
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    /* ─────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────── */
+    @media(max-width:880px) {
+      .sidebar {
+        display: none
+      }
+
+      .land-nav {
+        padding: 16px 20px
+      }
+
+      .problems {
+        grid-template-columns: 1fr
+      }
+
+      .steps {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .page {
+        padding: 18px 16px
+      }
+
+      .topbar {
+        padding: 14px 16px
+      }
+
+      .qr-modal-body {
+        grid-template-columns: 1fr;
+        gap: 16px
+      }
+
+      .form-cols {
+        grid-template-columns: 1fr
+      }
+
+      .field-full {
+        grid-column: span 1
+      }
+
+      .qr-panel {
+        position: static
+      }
+    }
+
+    @media(max-width:560px) {
+      .hero-h {
+        font-size: clamp(2.6rem, 12vw, 4rem)
+      }
+
+      .steps {
+        grid-template-columns: 1fr
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .problems {
+        gap: 0
+      }
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+</head>
+
+<body>
+
+  <!-- ══════════════════ LANDING ══════════════════ -->
+  <div id="land" class="screen on">
+    <div class="land-grid"></div>
+    <div class="glow g1"></div>
+    <div class="glow g2"></div>
+    <div class="glow g3"></div>
+
+    <nav class="land-nav">
+      <a class="logo" href="#">
+        <div class="logo-mark">⬡</div>
+        <span class="logo-text">Smart<em>QR</em></span>
+      </a>
+      <div class="nav-links">
+        <button class="nav-btn nb-ghost" onclick="showAuth()">Sign In</button>
+        <button class="nav-btn nb-go" onclick="showAuth()">Get Started Free →</button>
+      </div>
+    </nav>
+
+    <div class="land-hero">
+      <div class="hero-chip"><span class="chip-dot"></span>Dynamic · Editable · Always Live</div>
+      <h1 class="hero-h">
+        One QR Code.<br>
+        <span class="stroke">Update Forever.</span>
+      </h1>
+      <p class="hero-sub">
+        Create smart QR codes for your <strong>people, vehicles, items & pets</strong>.<br>
+        Someone finds it — they scan, see your contact, reach you instantly.<br>
+        Change your number anytime. <strong>The QR never changes.</strong>
+      </p>
+      <div class="hero-cta">
+        <button class="btn btn-go btn-lg" onclick="showAuth()">🚀 Create Free QR Code</button>
+        <button class="btn btn-ghost btn-lg" onclick="showDemoScan()">👁 See Scan Page Live</button>
+      </div>
+    </div>
+
+    <!-- Problem → Solution Cards -->
+    <div style="max-width:1000px;margin:0 auto 10px;padding:0 24px">
+      <div style="text-align:center;margin-bottom:24px">
+        <div class="section-label">Why SmartQR Exists</div>
+      </div>
+    </div>
+    <div class="problems"
+      style="margin:0 auto 80px;max-width:1000px;margin-left:auto;margin-right:auto;margin-bottom:80px">
+      <div class="prob">
+        <div class="prob-icon pi-red">🔍</div>
+        <div class="prob-tag pt-problem">Problem 01</div>
+        <div class="prob-title">Identification Challenges</div>
+        <div class="prob-body">Lost items and vehicles often lack clear owner identification, making recovery nearly
+          impossible. No label = no way home.</div>
+      </div>
+      <div class="prob">
+        <div class="prob-icon pi-amber">📵</div>
+        <div class="prob-tag pt-problem">Problem 02</div>
+        <div class="prob-title">Contact Difficulties</div>
+        <div class="prob-body">Existing methods make it hard to contact owners promptly, especially during emergencies
+          when every second counts.</div>
+      </div>
+      <div class="prob">
+        <div class="prob-icon pi-blue">🔒</div>
+        <div class="prob-tag pt-problem">Problem 03</div>
+        <div class="prob-title">Static QR Limitations</div>
+        <div class="prob-body">Traditional QR codes are frozen. Once printed, information cannot be changed — outdated
+          details mean missed connections.</div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="how-section">
+      <div class="section-label">The Solution</div>
+      <h2 class="section-title">How SmartQR Works</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">STEP — 01</div>
+          <div class="step-icon">✍️</div>
+          <div class="step-title">Create Your Profile</div>
+          <div class="step-body">Enter your contact details, choose the QR type (person, vehicle, item, pet) and
+            generate your smart QR code in seconds.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">STEP — 02</div>
+          <div class="step-icon">🖨️</div>
+          <div class="step-title">Print & Attach</div>
+          <div class="step-body">Download your QR as a high-res PNG. Print and attach it to luggage tags, keychains, ID
+            cards, vehicle windows or pet collars.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">STEP — 03</div>
+          <div class="step-icon">📱</div>
+          <div class="step-title">Finder Scans It</div>
+          <div class="step-body">Anyone who finds your item simply scans the QR with any phone camera — no app needed —
+            and sees your contact instantly.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">STEP — 04</div>
+          <div class="step-icon">♻️</div>
+          <div class="step-title">Update Anytime</div>
+          <div class="step-body">Changed your phone number? New address? Update your profile in seconds. The printed QR
+            code stays exactly the same — forever.</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:48px">
+        <button class="btn btn-go btn-lg" onclick="showAuth()">Start For Free — No Credit Card →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ AUTH MODAL ══════════════════ -->
+  <div class="modal-bg" id="auth-modal">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-head-title" id="auth-title">Welcome to SmartQR</div>
+        <button class="modal-x" onclick="closeAuth()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs">
+          <button class="tab-btn on" id="tab-in" onclick="switchTab('in')">Sign In</button>
+          <button class="tab-btn" id="tab-up" onclick="switchTab('up')">Register</button>
+        </div>
+
+        <div id="form-in">
+          <div class="field">
+            <label class="flabel">Email Address</label>
+            <input class="finput" id="li-email" type="email" placeholder="you@example.com" value="demo@smartqr.app">
+          </div>
+          <div class="field">
+            <label class="flabel">Password</label>
+            <input class="finput" id="li-pass" type="password" placeholder="••••••••" value="demo123">
+          </div>
+          <button class="btn btn-go btn-full" onclick="doLogin()">Sign In →</button>
+          <p class="demo-note">Demo filled — just click Sign In!</p>
+        </div>
+
+        <div id="form-up" style="display:none">
+          <div class="field">
+            <label class="flabel">Full Name</label>
+            <input class="finput" id="ru-name" type="text" placeholder="Your name">
+          </div>
+          <div class="field">
+            <label class="flabel">Email Address</label>
+            <input class="finput" id="ru-email" type="email" placeholder="you@example.com">
+          </div>
+          <div class="field">
+            <label class="flabel">Password</label>
+            <input class="finput" id="ru-pass" type="password" placeholder="Create a password">
+          </div>
+          <button class="btn btn-go btn-full" onclick="doRegister()">Create Account →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ APP ══════════════════ -->
+  <div id="app-screen" class="screen" style="display:none">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sb-brand">
+        <a class="logo" href="#" style="text-decoration:none">
+          <div class="logo-mark" style="width:30px;height:30px;font-size:.8rem">⬡</div>
+          <span class="logo-text" style="font-size:1.1rem">Smart<em>QR</em></span>
+        </a>
+      </div>
+      <div class="sb-user">
+        <div class="avatar" id="sb-ava">A</div>
+        <div>
+          <div class="sb-user-name" id="sb-name">User</div>
+          <span class="sb-user-badge">FREE PLAN</span>
+        </div>
+      </div>
+      <nav class="sb-nav">
+        <div class="sb-section">Main</div>
+        <div class="sb-item on" onclick="goPage('dash')"><span class="sb-item-icon">▦</span> Dashboard</div>
+        <div class="sb-item" onclick="goPage('myqr')"><span class="sb-item-icon">▣</span> My QR Codes <span
+            class="sb-badge" id="qr-badge">0</span></div>
+        <div class="sb-item" onclick="goPage('analytics')"><span class="sb-item-icon">↗</span> Analytics</div>
+        <div class="sb-section" style="margin-top:8px">Account</div>
+        <div class="sb-item" onclick="goPage('profile')"><span class="sb-item-icon">◉</span> Profile</div>
+        <div class="sb-item" onclick="goPage('settings')"><span class="sb-item-icon">◎</span> Settings</div>
+      </nav>
+      <div class="sb-bottom">
+        <button class="btn btn-ghost btn-sm" style="width:100%" onclick="doLogout()">← Sign Out</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-info">
+          <div class="topbar-title" id="tb-title">Dashboard</div>
+          <div class="topbar-sub" id="tb-sub">Here's your SmartQR overview</div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-go btn-sm" onclick="openCreate()">＋ New QR Code</button>
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div class="page on" id="pg-dash">
+        <div class="stats">
+          <div class="stat" data-icon="▣">
+            <div class="stat-lbl">Total QR Codes</div>
+            <div class="stat-val" id="s-total">0</div>
+            <div class="stat-sub sc-neu" id="s-total-sub">No codes yet</div>
+          </div>
+          <div class="stat" data-icon="◎">
+            <div class="stat-lbl">Total Scans</div>
+            <div class="stat-val" id="s-scans">0</div>
+            <div class="stat-sub sc-up">All time</div>
+          </div>
+          <div class="stat" data-icon="✓">
+            <div class="stat-lbl">Active Codes</div>
+            <div class="stat-val" id="s-active">0</div>
+            <div class="stat-sub sc-up">Currently live</div>
+          </div>
+          <div class="stat" data-icon="🛡">
+            <div class="stat-lbl">Protected Items</div>
+            <div class="stat-val" id="s-items">0</div>
+            <div class="stat-sub sc-neu">Registered</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:3fr 2fr;gap:18px">
+          <div class="scard">
+            <div class="scard-head">
+              <span class="scard-title">Recent QR Codes</span>
+              <button class="btn btn-ghost btn-xs" onclick="goPage('myqr')">View All</button>
+            </div>
+            <div class="scard-body" id="dash-recent">
+              <div class="empty">
+                <div class="empty-ico">▣</div>
+                <div class="empty-ttl">No QR codes yet</div>
+                <div class="empty-txt">Create your first smart QR code</div><button class="btn btn-go btn-sm"
+                  onclick="openCreate()">＋ Create QR Code</button>
+              </div>
+            </div>
+          </div>
+          <div class="scard">
+            <div class="scard-head"><span class="scard-title">Activity Feed</span></div>
+            <div class="scard-body" id="dash-activity">
+              <div class="empty" style="padding:24px 0">
+                <div class="empty-ico" style="font-size:2rem">◎</div>
+                <div class="empty-ttl">No activity</div>
+                <div class="empty-txt" style="font-size:.75rem">Scans & changes appear here</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MY QR CODES -->
+      <div class="page" id="pg-myqr">
+        <div
+          style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+          <div class="filter-row">
+            <button class="filt-btn on" onclick="filterQR('all',this)">All</button>
+            <button class="filt-btn" onclick="filterQR('person',this)">👤 Person</button>
+            <button class="filt-btn" onclick="filterQR('vehicle',this)">🚗 Vehicle</button>
+            <button class="filt-btn" onclick="filterQR('item',this)">🎒 Item</button>
+            <button class="filt-btn" onclick="filterQR('pet',this)">🐾 Pet</button>
+          </div>
+          <button class="btn btn-go btn-sm" onclick="openCreate()">＋ New QR</button>
+        </div>
+        <div class="qr-grid" id="qr-grid">
+          <div class="empty" style="grid-column:1/-1">
+            <div class="empty-ico">▣</div>
+            <div class="empty-ttl">No QR codes yet</div>
+            <div class="empty-txt">Create your first smart contact QR</div><button class="btn btn-go"
+              onclick="openCreate()">＋ Create QR Code</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS -->
+      <div class="page" id="pg-analytics">
+        <div class="scard">
+          <div class="scard-head"><span class="scard-title">Scan History — All QR Codes</span></div>
+          <div class="scard-body">
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Created</th>
+                    <th>Scans</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-body">
+                  <tr>
+                    <td colspan="6" style="text-align:center;color:var(--mist);padding:36px">Create QR codes to see
+                      analytics</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="page" id="pg-profile">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+          <div class="scard">
+            <div class="scard-head">
+              <span class="scard-title">Account Details</span>
+              <button class="btn btn-go btn-xs" onclick="saveProfile()">Save</button>
+            </div>
+            <div class="scard-body">
+              <div
+                style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--line)">
+                <div class="avatar" style="width:56px;height:56px;font-size:1.2rem;border-radius:14px"
+                  id="prof-ava-big">A</div>
+                <div>
+                  <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--snow)"
+                    id="prof-name-show">User</div>
+                  <div style="font-size:.78rem;color:var(--fog)" id="prof-email-show">—</div>
+                </div>
+              </div>
+              <div class="form-cols">
+                <div class="field"><label class="flabel">Full Name</label><input class="finput" id="p-name"
+                    placeholder="Full name"></div>
+                <div class="field"><label class="flabel">Phone</label><input class="finput" id="p-phone"
+                    placeholder="+1 555 0000"></div>
+                <div class="field field-full"><label class="flabel">Email</label><input class="finput" id="p-email"
+                    placeholder="email@example.com"></div>
+                <div class="field field-full"><label class="flabel">Location</label><input class="finput" id="p-loc"
+                    placeholder="City, Country"></div>
+              </div>
+            </div>
+          </div>
+          <div class="scard">
+            <div class="scard-head"><span class="scard-title">Plan & Usage</span></div>
+            <div class="scard-body">
+              <div
+                style="background:linear-gradient(135deg,rgba(0,229,160,.08),rgba(77,159,255,.05));border:1px solid rgba(0,229,160,.15);border-radius:12px;padding:18px;margin-bottom:18px">
+                <div
+                  style="font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--go);letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px">
+                  Current Plan</div>
+                <div style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--snow)">Free</div>
+                <div style="font-size:.78rem;color:var(--fog);margin-top:3px">Up to 5 QR codes · Basic analytics</div>
+              </div>
+              <div style="font-size:.83rem;color:var(--fog);line-height:2.2">
+                <div>▣ QR Codes: <strong style="color:var(--snow);font-family:'JetBrains Mono',monospace"
+                    id="u-qr">0</strong> / 5</div>
+                <div>◎ Total Scans: <strong style="color:var(--go);font-family:'JetBrains Mono',monospace"
+                    id="u-scans">0</strong></div>
+                <div>💾 Storage: Unlimited labels</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="pg-settings">
+        <div class="scard" style="max-width:580px">
+          <div class="scard-head"><span class="scard-title">Notifications</span></div>
+          <div class="scard-body">
+            <div class="toggle-field">
+              <div>
+                <div class="toggle-txt">Scan Alerts</div>
+                <div class="toggle-sub">Notify when QR code is scanned</div>
+              </div>
+              <label class="sw"><input type="checkbox" checked><span class="sw-track"></span></label>
+            </div>
+            <div class="toggle-field" style="border-top:1px solid var(--line)">
+              <div>
+                <div class="toggle-txt">Email Notifications</div>
+                <div class="toggle-sub">Receive email on contact form submission</div>
+              </div>
+              <label class="sw"><input type="checkbox" checked><span class="sw-track"></span></label>
+            </div>
+            <div class="toggle-field" style="border-top:1px solid var(--line)">
+              <div>
+                <div class="toggle-txt">Weekly Digest</div>
+                <div class="toggle-sub">Weekly scan activity summary</div>
+              </div>
+              <label class="sw"><input type="checkbox"><span class="sw-track"></span></label>
+            </div>
+          </div>
+        </div>
+        <div class="scard" style="max-width:580px">
+          <div class="scard-head"><span class="scard-title">Privacy</span></div>
+          <div class="scard-body">
+            <p style="font-size:.82rem;color:var(--fog);margin-bottom:16px">Control what information is visible on your
+              public scan page.</p>
+            <div class="toggle-field">
+              <span class="toggle-txt">Show Phone Number</span>
+              <label class="sw"><input type="checkbox" id="priv-phone" checked><span class="sw-track"></span></label>
+            </div>
+            <div class="toggle-field" style="border-top:1px solid var(--line)">
+              <span class="toggle-txt">Show Email Address</span>
+              <label class="sw"><input type="checkbox" id="priv-email"><span class="sw-track"></span></label>
+            </div>
+            <div class="toggle-field" style="border-top:1px solid var(--line)">
+              <span class="toggle-txt">Show Location / Address</span>
+              <label class="sw"><input type="checkbox" id="priv-addr"><span class="sw-track"></span></label>
+            </div>
+          </div>
+        </div>
+        <div class="scard" style="max-width:580px">
+          <div class="scard-head"><span class="scard-title">Danger Zone</span></div>
+          <div class="scard-body">
+            <button class="btn btn-red" onclick="doLogout()">Sign Out of Account</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ CREATE / EDIT MODAL ══════════════════ -->
+  <div class="modal-bg" id="qr-modal">
+    <div class="modal" style="max-width:780px;width:100%">
+      <div class="modal-head">
+        <div class="modal-head-title" id="qr-modal-title">Create New QR Code</div>
+        <button class="modal-x" onclick="closeQRModal()">✕</button>
+      </div>
+      <div class="qr-modal-body">
+        <!-- Form -->
+        <div>
+          <div class="form-cols">
+            <div class="field field-full">
+              <label class="flabel">QR Code Type</label>
+              <select class="fselect" id="f-type" onchange="onTypeChange()">
+                <option value="person">👤 Person / Identity</option>
+                <option value="vehicle">🚗 Vehicle</option>
+                <option value="item">🎒 Item / Luggage</option>
+                <option value="pet">🐾 Pet</option>
+              </select>
+            </div>
+            <div class="field field-full">
+              <label class="flabel" id="f-name-lbl">Full Name</label>
+              <input class="finput" id="f-name" placeholder="e.g. John Doe" oninput="liveQR()">
+            </div>
+            <div class="field">
+              <label class="flabel">Phone Number</label>
+              <input class="finput" id="f-phone" placeholder="+1 555 0000" oninput="liveQR()">
+            </div>
+            <div class="field">
+              <label class="flabel">Email Address</label>
+              <input class="finput" id="f-email" placeholder="you@email.com" oninput="liveQR()">
+            </div>
+            <div class="field field-full">
+              <label class="flabel" id="f-e1-lbl">Address / Location</label>
+              <input class="finput" id="f-e1" placeholder="City, Country" oninput="liveQR()">
+            </div>
+            <div class="field field-full">
+              <label class="flabel" id="f-e2-lbl">Message for Finder</label>
+              <textarea class="ftextarea" id="f-e2" placeholder="e.g. Please call me — reward offered!"
+                oninput="liveQR()"></textarea>
+            </div>
+            <div class="field">
+              <label class="flabel">Emergency Contact</label>
+              <input class="finput" id="f-emer" placeholder="Name + Phone">
+            </div>
+            <div class="field">
+              <label class="flabel">Reward?</label>
+              <select class="fselect" id="f-reward">
+                <option value="">No reward mentioned</option>
+                <option value="Yes — reward offered!">Yes — reward offered!</option>
+                <option value="Contact owner for reward details">Contact owner for reward details</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <!-- QR Preview -->
+        <div class="qr-panel">
+          <div class="qr-panel-label">Live QR Preview</div>
+          <div class="qr-big" id="modal-qr-container"></div>
+          <div class="qr-url" id="modal-qr-url">Enter details to generate</div>
+          <div class="qr-info-box">
+            <p>This QR permanently links to your profile.<br>Update contact info anytime — QR stays the same.</p>
+          </div>
+        </div>
+      </div>
+      <div
+        style="padding:18px 26px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+        <button class="btn btn-ghost" onclick="closeQRModal()">Cancel</button>
+        <button class="btn btn-go" onclick="saveQR()">💾 Save QR Code</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ VIEW QR MODAL ══════════════════ -->
+  <div class="modal-bg" id="view-modal">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-head">
+        <div class="modal-head-title" id="view-modal-title">QR Code</div>
+        <button class="modal-x" onclick="closeModal('view-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="view-qr-center">
+          <div id="vqr-container"></div>
+          <div class="vqr-url" id="vqr-url-show">—</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+            <button class="btn btn-go btn-sm" onclick="downloadQR()">⬇ Download PNG</button>
+            <button class="btn btn-line btn-sm" onclick="copyLink()">🔗 Copy Link</button>
+            <button class="btn btn-blue btn-sm" onclick="previewScan()">👁 Preview Scan</button>
+          </div>
+          <ul class="use-guide">
+            <li>Download and print the QR code</li>
+            <li>Attach to luggage, vehicle, ID card or pet collar</li>
+            <li>Finder scans it — sees your contact instantly</li>
+            <li>Update contact details anytime — QR never changes</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ PUBLIC SCAN VIEW ══════════════════ -->
+  <div id="scan-view">
+    <div class="scan-nav">
+      <a class="logo" href="#" style="text-decoration:none">
+        <div class="logo-mark" style="width:28px;height:28px;font-size:.75rem">⬡</div>
+        <span class="logo-text" style="font-size:1rem">Smart<em>QR</em></span>
+      </a>
+      <span style="font-size:.72rem;color:var(--mist);font-family:'JetBrains Mono',monospace">SECURE · LIVE ·
+        VERIFIED</span>
+    </div>
+    <div class="scan-wrap">
+      <div style="text-align:center;margin-bottom:16px">
+        <span
+          style="font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--mist);letter-spacing:.12em">FOUND
+          THIS? CONTACT THE OWNER:</span>
+      </div>
+      <div class="scan-card">
+        <div class="scan-hero">
+          <div class="scan-ava" id="scan-ava">👤</div>
+          <div class="scan-name" id="scan-name">—</div>
+          <div id="scan-type-pill" style="margin-top:6px"></div>
+        </div>
+        <div class="scan-body" id="scan-body"></div>
+        <div class="scan-actions" id="scan-actions"></div>
+      </div>
+      <div class="scan-footer">
+        Protected by <a href="#" onclick="backFromScan()">SmartQR</a> &nbsp;·&nbsp;
+        <a href="#" onclick="backFromScan()">Create your free QR →</a>
+      </div>
+      <div style="text-align:center;margin-top:16px">
+        <button class="btn btn-ghost btn-sm" onclick="backFromScan()">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast-root"></div>
+
+  <script>
+    // ═══════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════
+    const firebaseConfig = {
+      apiKey: "AIzaSyCdvkTcexuo4TBbTH3Ce24Asce9woJME-4",
+      authDomain: "smartqr-7f06d.firebaseapp.com",
+      projectId: "smartqr-7f06d",
+      storageBucket: "smartqr-7f06d.firebasestorage.app",
+      messagingSenderId: "973335454949",
+      appId: "1:973335454949:web:0e7e1249b91f91673b600c",
+      measurementId: "G-KR9SFDK4PL"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+    emailjs.init("5192KcTLZmEao0J5e");
+
+    // ═══════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════
+    let S = {
+      user: null,
+      codes: [],
+      editing: null,
+      viewCode: null,
+      activity: [],
+    };
+
+    const TYPES = {
+      person: { label: 'Person', icon: '👤', pill: 'tp-person', color: '#00E5A0' },
+      vehicle: { label: 'Vehicle', icon: '🚗', pill: 'tp-vehicle', color: '#4D9FFF' },
+      item: { label: 'Item', icon: '🎒', pill: 'tp-item', color: '#FF5C38' },
+      pet: { label: 'Pet', icon: '🐾', pill: 'tp-pet', color: '#FFAA00' },
+    };
+
+    const TYPE_LABELS = {
+      person: { name: 'Full Name', e1: 'Home / City Address', e2: 'Message for finder' },
+      vehicle: { name: 'Vehicle (Make, Model, Plate)', e1: 'Vehicle Description', e2: 'Parking note or message' },
+      item: { name: 'Item Name / Description', e1: 'Identifying Tag / Code', e2: 'Message for finder' },
+      pet: { name: 'Pet Name', e1: 'Breed & Colour', e2: 'Medical notes or vet info' },
+    };
+
+    function uid() { return 'qr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) }
+
+    // ═══════════════════════════════════
+    // SCREEN ROUTING
+    // ═══════════════════════════════════
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+      const sc = document.getElementById(id);
+      if (sc) { sc.classList.add('on'); if (id === 'app-screen') sc.style.display = 'flex'; }
+    }
+
+    // ═══════════════════════════════════
+    // AUTH
+    // ═══════════════════════════════════
+    function showAuth() { document.getElementById('auth-modal').classList.add('on') }
+    function closeAuth() { document.getElementById('auth-modal').classList.remove('on') }
+    function switchTab(t) {
+      document.getElementById('form-in').style.display = t === 'in' ? 'block' : 'none';
+      document.getElementById('form-up').style.display = t === 'up' ? 'block' : 'none';
+      document.getElementById('tab-in').classList.toggle('on', t === 'in');
+      document.getElementById('tab-up').classList.toggle('on', t === 'up');
+    }
+    async function doLogin() {
+      const e = document.getElementById('li-email').value.trim();
+      const p = document.getElementById('li-pass').value;
+      if (!e || !p) { toast('Fill in all fields', 'err'); return; }
+      try {
+        const cred = await auth.signInWithEmailAndPassword(e, p);
+        await loadUserData(cred.user);
+        closeAuth();
+        enterApp();
+      } catch (err) {
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          toast('Invalid credentials', 'err');
+        } else {
+          toast(err.message, 'err');
+        }
+      }
+    }
+    async function doRegister() {
+      const n = document.getElementById('ru-name').value.trim();
+      const e = document.getElementById('ru-email').value.trim();
+      const p = document.getElementById('ru-pass').value;
+      if (!n || !e || !p) { toast('Fill in all fields', 'err'); return; }
+      try {
+        const cred = await auth.createUserWithEmailAndPassword(e, p);
+        await cred.user.updateProfile({ displayName: n });
+        await loadUserData(cred.user);
+        closeAuth();
+        enterApp();
+        toast('Welcome to SmartQR! 🎉', 'ok');
+      } catch (err) {
+        toast(err.message, 'err');
+      }
+    }
+    async function loadUserData(firebaseUser) {
+      S.user = {
+        uid: firebaseUser.uid,
+        name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+        email: firebaseUser.email,
+        initials: (firebaseUser.displayName || firebaseUser.email).split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+      };
+      const snapshot = await db.collection('qr_codes').where('userId', '==', firebaseUser.uid).get();
+      S.codes = [];
+      snapshot.forEach(doc => {
+        S.codes.push({ id: doc.id, ...doc.data() });
+      });
+    }
+    async function doLogout() {
+      await auth.signOut();
+      S = { user: null, codes: [], editing: null, viewCode: null, activity: [] };
+      document.getElementById('app-screen').style.display = 'none';
+      document.getElementById('app-screen').classList.remove('on');
+      showScreen('land');
+    }
+    function enterApp() {
+      showScreen('app-screen');
+      document.getElementById('app-screen').style.display = 'flex';
+      syncSidebar();
+      refreshAll();
+      toast(`Hey ${S.user.name.split(' ')[0]}! 👋`, 'ok');
+    }
+    function syncSidebar() {
+      document.getElementById('sb-ava').textContent = S.user.initials;
+      document.getElementById('sb-name').textContent = S.user.name;
+      document.getElementById('prof-ava-big').textContent = S.user.initials;
+      document.getElementById('prof-name-show').textContent = S.user.name;
+      document.getElementById('prof-email-show').textContent = S.user.email;
+      document.getElementById('p-name').value = S.user.name;
+      document.getElementById('p-email').value = S.user.email;
+    }
+
+    // ═══════════════════════════════════
+    // DEMO DATA
+    // ═══════════════════════════════════
+    function loadDemo() {
+      S.codes = [
+        { id: 'qr_001', type: 'person', name: 'Albin George', phone: '+371 26590828', email: 'albingeorge369@gmail.com', e1: 'Riga, Latvia', e2: 'Please contact me if found! I will collect immediately.', emergency: 'Family: +91 9876543210', reward: 'Yes — reward offered!', scans: 14, active: true, created: '2026-01-15' },
+        { id: 'qr_002', type: 'vehicle', name: 'Toyota Corolla — GH-1234', phone: '+371 26590828', email: 'albingeorge369@gmail.com', e1: 'Silver, 2021 model', e2: "Please don't tow — owner will move shortly.", emergency: '', reward: 'Contact owner for reward details', scans: 3, active: true, created: '2026-02-01' },
+        { id: 'qr_003', type: 'item', name: 'Black Samsonite Luggage', phone: '+371 26590828', email: 'albingeorge369@gmail.com', e1: 'Tag: ALB-2026', e2: 'Contains important documents. Please contact ASAP.', emergency: '', reward: 'Yes — reward offered!', scans: 1, active: true, created: '2026-02-20' },
+      ];
+      S.activity = [
+        { text: '<strong>Albin George</strong> QR scanned at Riga Airport', time: '2 hours ago' },
+        { text: '<strong>Toyota Corolla</strong> QR scanned in Old Town', time: '1 day ago' },
+        { text: 'New QR <strong>Black Samsonite Luggage</strong> created', time: '3 days ago' },
+        { text: 'Contact info updated for <strong>Albin George</strong>', time: '5 days ago' },
+      ];
+    }
+
+    // ═══════════════════════════════════
+    // PAGE NAVIGATION
+    // ═══════════════════════════════════
+    const PAGE_META = {
+      dash: ['Dashboard', 'Your SmartQR overview'],
+      myqr: ['My QR Codes', 'Manage your smart QR codes'],
+      analytics: ['Analytics', 'Track scans and usage'],
+      profile: ['Profile', 'Manage your account'],
+      settings: ['Settings', 'Preferences & privacy'],
+    };
+    function goPage(p) {
+      document.querySelectorAll('.page').forEach(x => x.classList.remove('on'));
+      document.querySelectorAll('.sb-item').forEach(x => x.classList.remove('on'));
+      document.getElementById('pg-' + p).classList.add('on');
+      document.querySelectorAll('.sb-item').forEach(x => {
+        if (x.textContent.trim().toLowerCase().includes(p === 'myqr' ? 'qr' : p)) x.classList.add('on');
+      });
+      const [t, s] = PAGE_META[p] || [p, ''];
+      document.getElementById('tb-title').textContent = t;
+      document.getElementById('tb-sub').textContent = s;
+      if (p === 'myqr') renderQRGrid('all');
+      if (p === 'analytics') renderAnalytics();
+    }
+
+    // ═══════════════════════════════════
+    // REFRESH ALL
+    // ═══════════════════════════════════
+    function refreshAll() {
+      updateStats();
+      renderDashRecent();
+      renderActivity();
+      renderQRGrid('all');
+      renderAnalytics();
+      document.getElementById('qr-badge').textContent = S.codes.length;
+      document.getElementById('u-qr').textContent = S.codes.length;
+      document.getElementById('u-scans').textContent = S.codes.reduce((a, c) => a + c.scans, 0);
+    }
+    function updateStats() {
+      const tot = S.codes.length, scans = S.codes.reduce((a, c) => a + c.scans, 0), act = S.codes.filter(c => c.active).length;
+      document.getElementById('s-total').textContent = tot;
+      document.getElementById('s-scans').textContent = scans;
+      document.getElementById('s-active').textContent = act;
+      document.getElementById('s-items').textContent = tot;
+      document.getElementById('s-total-sub').textContent = tot === 1 ? '1 code' : `${tot} codes`;
+    }
+    function renderDashRecent() {
+      const el = document.getElementById('dash-recent');
+      if (!S.codes.length) {
+        el.innerHTML = '<div class="empty"><div class="empty-ico">▣</div><div class="empty-ttl">No QR codes yet</div><div class="empty-txt">Create your first smart QR code</div><button class="btn btn-go btn-sm" onclick="openCreate()">＋ Create QR Code</button></div>';
+        return;
+      }
+      const rows = S.codes.slice(-3).reverse().map(c => `<tr>
+    <td><strong style="color:var(--snow)">${c.name}</strong></td>
+    <td><span class="type-pill ${TYPES[c.type].pill}">${TYPES[c.type].icon} ${TYPES[c.type].label}</span></td>
+    <td style="font-family:'JetBrains Mono',monospace;color:var(--go)">${c.scans}</td>
+    <td><span class="${c.active ? 'dot-on' : 'dot-off'}"></span>${c.active ? 'Active' : 'Off'}</td>
+    <td><button class="btn btn-xs btn-line" onclick="openViewModal('${c.id}')">View QR</button></td>
+  </tr>`).join('');
+      el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Scans</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+    function renderActivity() {
+      const el = document.getElementById('dash-activity');
+      if (!S.activity.length) { el.innerHTML = '<div class="empty" style="padding:20px 0"><div class="empty-ico" style="font-size:1.8rem">◎</div><div class="empty-ttl">No activity</div></div>'; return; }
+      el.innerHTML = S.activity.map(a => `<div class="act-item"><div class="act-dot"></div><div><div class="act-text">${a.text}</div><div class="act-time">${a.time}</div></div></div>`).join('');
+    }
+
+    // ═══════════════════════════════════
+    // QR GRID
+    // ═══════════════════════════════════
+    let currentFilter = 'all';
+    function filterQR(f, btn) {
+      currentFilter = f;
+      document.querySelectorAll('.filt-btn').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      renderQRGrid(f);
+    }
+    function renderQRGrid(f) {
+      const grid = document.getElementById('qr-grid');
+      const items = f === 'all' ? S.codes : S.codes.filter(c => c.type === f);
+      if (!items.length) {
+        grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-ico">▣</div><div class="empty-ttl">No ${f === 'all' ? 'QR codes' : `"${f}" QR codes`}</div><div class="empty-txt">Create a new QR code to get started</div><button class="btn btn-go" onclick="openCreate()">＋ Create QR Code</button></div>`;
+        return;
+      }
+      grid.innerHTML = items.map(c => `
+    <div class="qr-card" id="card-${c.id}">
+      <div class="qrc-top">
+        <div class="qr-thumb" id="mini-${c.id}"></div>
+        <div class="qrc-meta">
+          <div class="qrc-name">${c.name}</div>
+          <span class="type-pill ${TYPES[c.type].pill}">${TYPES[c.type].icon} ${TYPES[c.type].label}</span>
+          <div class="qrc-scans">👁 <strong>${c.scans}</strong> scans</div>
+        </div>
+      </div>
+      <div class="qrc-body">
+        ${c.phone ? `<div class="qrc-row"><span class="qrc-row-icon">📞</span>${c.phone}</div>` : ''}
+        ${c.email ? `<div class="qrc-row"><span class="qrc-row-icon">✉️</span>${c.email}</div>` : ''}
+        ${c.e1 ? `<div class="qrc-row"><span class="qrc-row-icon">📍</span>${c.e1}</div>` : ''}
+      </div>
+      <div class="qrc-foot">
+        <button class="btn btn-xs btn-red" onclick="deleteCode('${c.id}')">🗑</button>
+        <button class="btn btn-xs btn-ghost" onclick="openEdit('${c.id}')">✏️ Edit</button>
+        <button class="btn btn-xs btn-blue" onclick="openViewModal('${c.id}')">📱 View QR</button>
+      </div>
+    </div>`).join('');
+      items.forEach(c => setTimeout(() => genMini(c), 80));
+    }
+    function genMini(c) {
+      const el = document.getElementById('mini-' + c.id);
+      if (!el) return;
+      el.innerHTML = '';
+      try { new QRCode(el, { text: scanURL(c.id), width: 68, height: 68, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M }) } catch (e) { }
+    }
+    function scanURL(id) {
+      // Check if opened locally as a file vs running on the local server
+      let baseUrl = location.href.split('?')[0];
+      if (baseUrl.startsWith('file://') || baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+        baseUrl = 'http://172.20.10.2:8080/SmartQR_System.html';
+      }
+      return baseUrl + '?qr=' + id;
+    }
+
+    function renderAnalytics() {
+      const tbody = document.getElementById('analytics-body');
+      if (!S.codes.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--mist);padding:36px">No QR codes yet</td></tr>'; return; }
+      tbody.innerHTML = S.codes.map(c => `<tr>
+    <td><strong style="color:var(--snow)">${c.name}</strong></td>
+    <td><span class="type-pill ${TYPES[c.type].pill}">${TYPES[c.type].icon} ${TYPES[c.type].label}</span></td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--mist)">${c.created}</td>
+    <td style="font-family:'JetBrains Mono',monospace;color:var(--go);font-weight:700">${c.scans}</td>
+    <td><span class="${c.active ? 'dot-on' : 'dot-off'}"></span>${c.active ? 'Active' : 'Inactive'}</td>
+    <td><button class="btn btn-xs btn-line" onclick="openViewModal('${c.id}')">View QR</button></td>
+  </tr>`).join('');
+    }
+
+    // ═══════════════════════════════════
+    // CREATE / EDIT MODAL
+    // ═══════════════════════════════════
+    function openCreate() {
+      S.editing = null;
+      document.getElementById('qr-modal-title').textContent = 'Create New QR Code';
+      document.getElementById('f-type').value = 'person';
+      ['f-name', 'f-phone', 'f-email', 'f-e1', 'f-e2', 'f-emer'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f-reward').value = '';
+      document.getElementById('f-phone').value = S.user?.phone || '';
+      document.getElementById('f-email').value = S.user?.email || '';
+      onTypeChange();
+      document.getElementById('modal-qr-container').innerHTML = '';
+      document.getElementById('modal-qr-url').textContent = 'Fill in details to generate';
+      openModal('qr-modal');
+    }
+    function openEdit(id) {
+      const c = S.codes.find(x => x.id === id); if (!c) return;
+      S.editing = id;
+      document.getElementById('qr-modal-title').textContent = 'Edit QR Code';
+      document.getElementById('f-type').value = c.type;
+      document.getElementById('f-name').value = c.name;
+      document.getElementById('f-phone').value = c.phone || '';
+      document.getElementById('f-email').value = c.email || '';
+      document.getElementById('f-e1').value = c.e1 || '';
+      document.getElementById('f-e2').value = c.e2 || '';
+      document.getElementById('f-emer').value = c.emergency || '';
+      document.getElementById('f-reward').value = c.reward || '';
+      onTypeChange();
+      liveQR();
+      openModal('qr-modal');
+    }
+    function closeQRModal() { closeModal('qr-modal'); S.editing = null }
+
+    function onTypeChange() {
+      const t = document.getElementById('f-type').value;
+      const l = TYPE_LABELS[t];
+      document.getElementById('f-name-lbl').textContent = l.name;
+      document.getElementById('f-e1-lbl').textContent = l.e1;
+      document.getElementById('f-e2-lbl').textContent = l.e2;
+      liveQR();
+    }
+
+    function liveQR() {
+      const id = S.editing || 'prev_' + Date.now();
+      const url = scanURL(id);
+      document.getElementById('modal-qr-url').textContent = url;
+      const con = document.getElementById('modal-qr-container');
+      con.innerHTML = '';
+      try { new QRCode(con, { text: url, width: 158, height: 158, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H }) } catch (e) { }
+    }
+
+    async function saveQR() {
+      const name = document.getElementById('f-name').value.trim();
+      if (!name) { toast('Please enter a name', 'err'); return; }
+
+      // Use the ID generated during live preview (or create one)
+      const codeId = S.editing || document.getElementById('modal-qr-url').textContent.split('?qr=')[1] || uid();
+
+      const d = {
+        type: document.getElementById('f-type').value,
+        name,
+        phone: document.getElementById('f-phone').value.trim(),
+        email: document.getElementById('f-email').value.trim(),
+        e1: document.getElementById('f-e1').value.trim(),
+        e2: document.getElementById('f-e2').value.trim(),
+        emergency: document.getElementById('f-emer').value.trim(),
+        reward: document.getElementById('f-reward').value,
+        active: true,
+        userId: S.user.uid
+      };
+
+      if (S.editing) {
+        try {
+          await db.collection('qr_codes').doc(S.editing).update(d);
+          const i = S.codes.findIndex(x => x.id === S.editing);
+          S.codes[i] = { ...S.codes[i], ...d };
+          S.activity.unshift({ text: `<strong>${name}</strong> QR code updated`, time: 'Just now' });
+          toast('QR code updated ✅', 'ok');
+        } catch (err) { toast(err.message, 'err'); return; }
+      } else {
+        try {
+          d.scans = 0;
+          d.created = new Date().toISOString().split('T')[0];
+          // Use set() with the specific preview ID instead of add() so they match!
+          await db.collection('qr_codes').doc(codeId).set(d);
+          d.id = codeId;
+          S.codes.push(d);
+          S.activity.unshift({ text: `New QR code <strong>${name}</strong> created`, time: 'Just now' });
+          toast('QR code created! 🎉', 'ok');
+        } catch (err) { toast(err.message, 'err'); return; }
+      }
+      closeQRModal();
+      refreshAll();
+      goPage('myqr');
+    }
+
+    async function deleteCode(id) {
+      if (!confirm('Delete this QR code? This cannot be undone.')) return;
+      try {
+        await db.collection('qr_codes').doc(id).delete();
+        const c = S.codes.find(x => x.id === id);
+        S.codes = S.codes.filter(x => x.id !== id);
+        S.activity.unshift({ text: `QR code <strong>${c.name}</strong> deleted`, time: 'Just now' });
+        refreshAll();
+        toast('QR code deleted', 'inf');
+      } catch (err) {
+        toast(err.message, 'err');
+      }
+    }
+
+    // ═══════════════════════════════════
+    // VIEW QR MODAL
+    // ═══════════════════════════════════
+    function openViewModal(id) {
+      const c = S.codes.find(x => x.id === id); if (!c) return;
+      S.viewCode = c;
+      document.getElementById('view-modal-title').textContent = c.name;
+      const url = scanURL(c.id);
+      document.getElementById('vqr-url-show').textContent = url;
+      const con = document.getElementById('vqr-container');
+      con.innerHTML = '';
+      setTimeout(() => { try { new QRCode(con, { text: url, width: 166, height: 166, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H }) } catch (e) { } }, 50);
+      openModal('view-modal');
+    }
+    function downloadQR() {
+      const canvas = document.querySelector('#vqr-container canvas');
+      if (!canvas) { toast('QR not ready', 'err'); return; }
+      const a = document.createElement('a');
+      a.download = (S.viewCode?.name || 'QRCode').replace(/\s/g, '_') + '_SmartQR.png';
+      a.href = canvas.toDataURL('image/png'); a.click();
+      toast('QR downloaded 📥', 'ok');
+    }
+    function copyLink() {
+      navigator.clipboard.writeText(document.getElementById('vqr-url-show').textContent)
+        .then(() => toast('Link copied! 🔗', 'ok'));
+    }
+    function previewScan() {
+      if (!S.viewCode) return;
+      closeModal('view-modal');
+      showScanPage(S.viewCode);
+    }
+
+    // ═══════════════════════════════════
+    // SCAN PAGE
+    // ═══════════════════════════════════
+    function showScanPage(c) {
+      document.getElementById('app-screen').style.display = 'none';
+      document.getElementById('land').style.display = 'none';
+      const sv = document.getElementById('scan-view');
+      sv.style.display = 'block';
+      sv.classList.add('on');
+
+      const t = TYPES[c.type];
+      document.getElementById('scan-ava').textContent = t.icon;
+      document.getElementById('scan-name').textContent = c.name;
+      const pill = document.getElementById('scan-type-pill');
+      pill.innerHTML = `<span class="type-pill ${t.pill}">${t.icon} ${t.label}</span>`;
+
+      const rows = [];
+      if (c.phone) rows.push({ ico: '📞', lbl: 'Phone', val: `<a href="tel:${c.phone}">${c.phone}</a>` });
+      if (c.email) rows.push({ ico: '✉️', lbl: 'Email', val: `<a href="mailto:${c.email}">${c.email}</a>` });
+      if (c.e1) {
+        const lbls = { person: 'Location', vehicle: 'Description', item: 'Tag', pet: 'Breed' };
+        rows.push({ ico: c.type === 'vehicle' ? '🚗' : c.type === 'pet' ? '🐾' : '📍', lbl: lbls[c.type], val: c.e1 });
+      }
+      if (c.e2) rows.push({ ico: '💬', lbl: 'Message', val: c.e2 });
+      if (c.emergency) rows.push({ ico: '🆘', lbl: 'Emergency', val: c.emergency });
+      if (c.reward) rows.push({ ico: '🎁', lbl: 'Reward', val: c.reward });
+
+      document.getElementById('scan-body').innerHTML = rows.map(r => `
+    <div class="scan-row">
+      <div class="scan-row-icon">${r.ico}</div>
+      <div><div class="scan-row-lbl">${r.lbl}</div><div class="scan-row-val">${r.val}</div></div>
+    </div>`).join('');
+
+      const acts = [];
+      if (c.phone) {
+        acts.push(`<a class="scan-act" href="tel:${c.phone}"><span class="scan-act-ico">📞</span><span class="scan-act-lbl">Call</span></a>`);
+        acts.push(`<a class="scan-act" href="sms:${c.phone}"><span class="scan-act-ico">💬</span><span class="scan-act-lbl">SMS</span></a>`);
+      }
+      if (c.email) acts.push(`<a class="scan-act" href="mailto:${c.email}?subject=Found: ${c.name}"><span class="scan-act-ico">✉️</span><span class="scan-act-lbl">Email</span></a>`);
+      acts.push(`<a class="scan-act" href="#" onclick="toast('Location sharing coming soon!','inf');return false"><span class="scan-act-ico">📍</span><span class="scan-act-lbl">Share Location</span></a>`);
+      document.getElementById('scan-actions').innerHTML = acts.join('');
+
+      // Log scan
+      c.scans++;
+      S.activity.unshift({ text: `<strong>${c.name}</strong> QR was scanned`, time: 'Just now' });
+    }
+
+    function backFromScan() {
+      document.getElementById('scan-view').style.display = 'none';
+      document.getElementById('scan-view').classList.remove('on');
+      if (S.user) {
+        document.getElementById('app-screen').style.display = 'flex';
+        refreshAll();
+      } else {
+        document.getElementById('land').style.display = 'block';
+        document.getElementById('land').classList.add('on');
+      }
+    }
+
+    function showDemoScan() {
+      document.getElementById('land').style.display = 'none';
+      showScanPage({
+        id: 'demo', type: 'person', name: 'Albin George',
+        phone: '+371 26590828', email: 'albingeorge369@gmail.com',
+        e1: 'Riga, Latvia', e2: 'If found, please contact me. Thank you!',
+        emergency: 'Family: +91 9876543210', reward: 'Yes — reward offered!', scans: 0
+      });
+    }
+
+    // ═══════════════════════════════════
+    // PROFILE
+    // ═══════════════════════════════════
+    function saveProfile() {
+      S.user.name = document.getElementById('p-name').value || S.user.name;
+      S.user.email = document.getElementById('p-email').value || S.user.email;
+      S.user.initials = S.user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      syncSidebar();
+      toast('Profile saved ✅', 'ok');
+    }
+
+    // ═══════════════════════════════════
+    // MODAL HELPERS
+    // ═══════════════════════════════════
+    function openModal(id) { document.getElementById(id).classList.add('on') }
+    function closeModal(id) { document.getElementById(id).classList.remove('on') }
+    // Close on backdrop click
+    document.querySelectorAll('.modal-bg').forEach(bg => {
+      bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('on') });
+    });
+
+    // ═══════════════════════════════════
+    // TOAST
+    // ═══════════════════════════════════
+    function toast(msg, type = 'inf') {
+      const icons = { ok: '✅', err: '❌', inf: 'ℹ️' };
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+      document.getElementById('toast-root').appendChild(el);
+      setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(16px)'; el.style.transition = '.28s'; setTimeout(() => el.remove(), 300) }, 3000);
+    }
+
+    // ═══════════════════════════════════
+    // URL SCAN PARAM
+    // ═══════════════════════════════════
+    window.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(location.search);
+      const qrId = params.get('qr');
+      if (qrId) {
+        try {
+          const doc = await db.collection('qr_codes').doc(qrId).get();
+          if (doc.exists) {
+            const c = { id: doc.id, ...doc.data() };
+            showScanPage(c);
+            handleScanTracking(c);
+          } else {
+            toast('QR code not found', 'err');
+          }
+        } catch (e) {
+          console.error(e);
+          toast('Error loading QR code', 'err');
+        }
+      } else {
+        auth.onAuthStateChanged(async (user) => {
+          if (user && !new URLSearchParams(location.search).get('qr')) {
+            await loadUserData(user);
+            enterApp();
+          }
+        });
+      }
+    });
+
+    async function handleScanTracking(c) {
+      try {
+        await db.collection('qr_codes').doc(c.id).update({
+          scans: firebase.firestore.FieldValue.increment(1)
+        });
+      } catch (e) { console.error("Error incrementing scans", e); }
+
+      const lastScan = localStorage.getItem('lastScan_' + c.id);
+      const now = Date.now();
+      if (!lastScan || now - parseInt(lastScan) > 5000) {
+        localStorage.setItem('lastScan_' + c.id, now.toString());
+        
+        emailjs.send("service_gxck0qd", "template_gpbdf5d", {
+          owner_name: c.name || "Unknown",
+          phone: c.phone || "N/A",
+          email: c.email || "N/A",
+          to_email: c.email,        // Used by most EmailJS dynamic "To Email" fields
+          owner_email: c.email,     // Fallback alternative
+          reply_to: c.email,        // Standard reply-to
+          location: c.e1 || "N/A",
+          message: c.e2 || "N/A",
+          scan_time: new Date().toLocaleString()
+        })
+        .then(res => {
+          console.log("Email sent successfully!", res);
+          // Optional: Show a subtle success toast if you want the scanner to know the owner was emailed
+          // toast("Owner notified via email", "ok");
+        })
+        .catch(err => {
+          console.error("EmailJS Error details:", err);
+          toast("System could not auto-email the owner. Please use manual contact options.", "err");
+        });
+      }
+    }
+  </script>
+</body>
+
+</html>
