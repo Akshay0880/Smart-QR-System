@@ -3027,26 +3027,30 @@
       if (!lastScan || now - parseInt(lastScan) > 5000) {
         localStorage.setItem('lastScan_' + c.id, now.toString());
         
-        emailjs.send("service_gxck0qd", "template_gpbdf5d", {
-          owner_name: c.name || "Unknown",
-          phone: c.phone || "N/A",
-          email: c.email || "N/A",
-          to_email: c.email,        // Used by most EmailJS dynamic "To Email" fields
-          owner_email: c.email,     // Fallback alternative
-          reply_to: c.email,        // Standard reply-to
-          location: c.e1 || "N/A",
-          message: c.e2 || "N/A",
-          scan_time: new Date().toLocaleString()
-        })
-        .then(res => {
-          console.log("Email sent successfully!", res);
-          // Optional: Show a subtle success toast if you want the scanner to know the owner was emailed
-          // toast("Owner notified via email", "ok");
-        })
-        .catch(err => {
-          console.error("EmailJS Error details:", err);
-          toast("System could not auto-email the owner. Please use manual contact options.", "err");
-        });
+        if (c.email && c.email.trim() !== "") {
+
+          emailjs.send(
+            "service_gxck0qd",
+            "template_gpbdf5d",
+            {
+              owner_name: c.name || "Unknown",
+              phone: c.phone || "N/A",
+              email: c.email,
+              to_email: c.email,
+              location: c.e1 || "N/A",
+              message: c.e2 || "N/A",
+              scan_time: new Date().toLocaleString()
+            },
+            "5192KcTLZmEao0J5e"
+          )
+          .then(function(response){
+            console.log("EMAIL SENT", response);
+          })
+          .catch(function(error){
+            console.log("EMAIL ERROR", error);
+          });
+        
+        }
       }
     }
   </script>
